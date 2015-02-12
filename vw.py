@@ -1,10 +1,9 @@
 from __future__ import division
 import csv
+import os
 import subprocess
-from itertools import izip
 from time import time
 import math
-from sklearn.metrics import roc_curve, auc
 
 __author__ = 'grf'
 
@@ -29,30 +28,23 @@ class VW():
         self.audit_time = 0.
         self.sparsity = 0
 
-    def __audit(self, audit_log):
-        """
-        Reads the output of vw -a (audit) on the all-feature example to extract hash values and weights
-        :param audit_log:
-        """
-        audit_output = self.__get_audit_log
-        self.__save_to_file(audit_log, audit_output)
-
-        i = iter(audit_output)
-        predictions = izip(i, i)
-        map(self.__audit_one_example, predictions)
-
-    @property
-    def __get_audit_log(self):
+    def __get_audit_log(self, audit_log):
         """
         Returns the list of all feature-names
-        :return:
+        :param audit_log:
         """
         vw_audit_args = self.parsed_args.vw + ' --quiet -t --audit -i ' + self.parsed_args.final_regressor + ' -d ' + self.parsed_args.data
         vw_audit_args = vw_audit_args.split()
-        proc = subprocess.Popen(vw_audit_args, stdout=subprocess.PIPE)
-        audit_output = proc.stdout.readlines()
-        proc.stdout.close()
-        return audit_output
+        f = open(audit_log,'w')
+        proc = subprocess.Popen(vw_audit_args, shell=False, stdout=f).communicate()
+        os.fsync(f)
+        f.close()
+        with open(audit_log, 'r') as f:
+            while True:
+                f.readline()
+                line = f.readline()
+                if not line: break
+                self.__audit_one_example(line)
 
     @staticmethod
     def __save_to_file(filename, result):
@@ -71,8 +63,9 @@ class VW():
         Audited feature format:   Namespace^featureName:142703:1:0.0435613
         :param result:
         """
-        f = map(lambda x: x.split(self._delimiter), result[1].strip().split('\t'))
-        map(lambda x: self.__add_feature(x), f)
+        f = [x.split(self._delimiter) for x in result.strip().split('\t')]
+        for x in f:
+            self.__add_feature(x)
 
     def __add_feature(self, example):
         """
@@ -90,10 +83,9 @@ class VW():
         Collects predictions. Supports logistic loss function only
         :return:
         """
-        predictions = []
         inf = open(self.parsed_args.predictions, 'r')
         reader = csv.reader(inf)
-        map(lambda x: predictions.append(self.__sigmoid(x)), reader)
+        predictions = [self.__sigmoid(row) for row in reader]
         inf.close()
         return predictions
 
@@ -113,15 +105,15 @@ class VW():
         Collects class values from the test file
         :return:
         """
-        real_class_values = []
         inf = open(self.parsed_args.testonly, 'r')
         reader = csv.reader(inf, delimiter=' ')
-        map(lambda x: real_class_values.append(int(x[0])), reader)
+        real_class_values = [int(x[0]) for x in reader]
         inf.close()
         return real_class_values
 
     @staticmethod
     def __get_roc_auc(real_classes, predictions):
+        from sklearn.metrics import roc_curve, auc
         """
         :param real_classes:
         :param predictions:
@@ -153,9 +145,11 @@ class VW():
 
         #
         predictions = self.__collect_predictions
+        ectr=sum(predictions)/len(predictions)
         real_classes = self.__collect_real_class_values
+        rctr=real_classes.count(1)/len(real_classes)
         fpr, tpr, thresholds, roc_auc = self.__get_roc_auc(real_classes, predictions)
-        return roc_auc
+        return roc_auc, ectr, rctr
 
     def summarize_features(self, audit_log='', summary_file='', save_summary=False):
         """
@@ -165,7 +159,7 @@ class VW():
         :param save_summary:
         """
         start = time()
-        self.__audit(audit_log)
+        self.__get_audit_log(audit_log)
         self.audit_time = time() - start
         self.sparsity = len(self._features)
         if save_summary:
