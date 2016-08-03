@@ -33,6 +33,7 @@ def main():
     #parser.add_argument('-q', '--quadratic')
     #parser.add_argument('-q:')
     #parser.add_argument('--cubic')
+    parser.add_argument('--interactions', type=str, help='Feature interactions')
 
     #parse example tweaks
     parser.add_argument('-t', '--testonly', type=str, help='Ignore label information and just test')
