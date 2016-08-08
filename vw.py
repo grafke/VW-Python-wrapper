@@ -125,6 +125,12 @@ class VW():
 
     @staticmethod
     def __get_ne(real_classes, predictions):
+        """
+        Normalized entropy
+        :param real_classes:
+        :param predictions:
+        :return:
+        """
         from sklearn.metrics import log_loss
         from numpy import log
         rctr = real_classes.count(1) / len(real_classes)
@@ -157,7 +163,8 @@ class VW():
         real_classes = self.__collect_real_class_values
         rctr=real_classes.count(1)/len(real_classes)
         fpr, tpr, thresholds, roc_auc = self.__get_roc_auc(real_classes, predictions)
-        return roc_auc, ectr, rctr
+        ne = self.__get_ne(real_classes, predictions)
+        return roc_auc, ectr, rctr, ne
 
     def summarize_features(self, audit_log='', summary_file='', save_summary=False):
         """
