@@ -123,6 +123,14 @@ class VW():
         roc_auc = auc(fpr, tpr)
         return fpr, tpr, thresholds, roc_auc
 
+    @staticmethod
+    def __get_ne(real_classes, predictions):
+        from sklearn.metrics import log_loss
+        from numpy import log
+        rctr = real_classes.count(1) / len(real_classes)
+        entropy = -(rctr * log(rctr) + (1 - rctr) * log(1 - rctr))
+        return log_loss(real_classes, predictions) / entropy
+
     def learn(self):
         """
         Runs the training stage to compute per feature weights
