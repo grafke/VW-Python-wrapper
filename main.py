@@ -187,7 +187,7 @@ def test(args, arg_string):
     """
     vw = VW(args, arg_string)
     sys.stderr.write('Testing with args: "%s" ' % ' '.join(arg_string))
-    print "AUC\tECTR\tRCTR\n%s\t%s\t%s" % vw.test
+    print "AUC\tECTR\tRCTR\tNE\n%s\t%s\t%s\t%s" % vw.test
 
 
 if __name__ == '__main__':
