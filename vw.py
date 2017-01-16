@@ -63,7 +63,7 @@ class VW():
         Audited feature format:   Namespace^featureName:142703:1:0.0435613@0.25
         :param result:
         """
-        f = [x.split('@')[0].split(self._delimiter) for x in result.strip().split('\t')]
+        f = [x.rsplit('@', 1)[0].split(self._delimiter) for x in result.strip().split('\t')]
         for x in f:
             self.__add_feature(x)
 
